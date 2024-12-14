@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Timer and Vote Counter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: center;
+        }
+        section {
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 800px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            margin: 10px 0;
+        }
+        h1 {
+            font-size: 2.5rem; /* Increased title size */
+            font-weight: bold;
+            margin: 20px 0;
+            color: #fff; /* Keeps the text white */
+        }
+        p {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #666;
+        }
+        #hero {
+            background-color: #25D366;
+            color: #fff;
+            padding: 2rem;
+        }
+        #hero img {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #timer {
+            font-size: 3rem; /* Increased timer size */
+            font-weight: bold;
+            margin: 10px 0;
+            color: #fff; /* Keeps the text white */
+        }
+        button {
+            padding: 10px 20px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        textarea {
+            width: 90%;
+            height: 80px;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #comments p {
+            background: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section id="hero">
+        <img src="https://i.postimg.cc/gJtNQqx6/Screenshot-20241211-135704.png" alt="Header Image" id="hero-img">
+        <div id="timer">Loading...</div>
+        <h1>Time Elapsed Since WhatsApp Ban</h1>
+    </section>
+
+    <!-- Modal for Image Pop-Out -->
+    <div class="modal" id="modal">
+        <span class="modal-close" id="modal-close">&times;</span>
+        <img src="https://i.postimg.cc/gJtNQqx6/Screenshot-20241211-135704.png" alt="Full Size Image">
+    </div>
+
+    <!-- About Section -->
+    <section>
+        <h2>About This Timer</h2>
+        <p>
+            For over 12 years, WhatsApp has been an essential tool in my professional life as a film producer, connecting me with colleagues, vendors, and collaborators worldwide. Recently, my account was abruptly banned following a technical issue on the platform, leaving me without access to critical data and disrupting key projects. Despite numerous attempts to resolve this through appeals and outreach, I’ve been met with silence. This experience is not unique to me—countless others have faced similar challenges, highlighting systemic issues in how WhatsApp handles its users. If you’ve experienced unfair account bans or communication breakdowns, join me in raising awareness and advocating for accountability from this vital platform. Together, we can push for fairness and better practices.
+        </p>
+    </section>
+
+    <!-- Vote Counter Section -->
+    <section>
+        <h2>Vote to Show Support</h2>
+        <p>Votes: <span id="vote-count">0</span></p>
+        <button id="vote-button">Vote</button>
+    </section>
+
+    <!-- Comment Section -->
+    <section>
+        <h2>Share Your Thoughts</h2>
+        <textarea id="comment-input" placeholder="Write your comment here..."></textarea>
+        <button id="comment-button">Post Comment</button>
+        <div id="comments"></div>
+    </section>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getDatabase, ref, onValue, push, runTransaction } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-3XLyfES3DBuL6GFi8QTWhxOvHi8s8bU",
+            authDomain: "whatsapp-counter-dfdc1.firebaseapp.com",
+            databaseURL: "https://whatsapp-counter-dfdc1-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "whatsapp-counter-dfdc1",
+            storageBucket: "whatsapp-counter-dfdc1.firebasestorage.app",
+            messagingSenderId: "27108990388",
+            appId: "1:27108990388:web:8d7e121c9b6ba94023a6e1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        console.log("Firebase initialized successfully!");
+
+        // Timer Logic
+        const startDate = new Date('2024-12-11T18:48:00Z');
+        function updateTimer() {
+            const now = new Date();
+            const elapsed = now - startDate;
+            const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((elapsed % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+            document.getElementById("timer").textContent = 
+                `${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`;
+        }
+        setInterval(updateTimer, 1000);
+
+        // Modal Logic for Image Pop-Out
+        const modal = document.getElementById("modal");
+        const heroImg = document.getElementById("hero-img");
+        const modalClose = document.getElementById("modal-close");
+
+        heroImg.addEventListener("click", () => {
+            modal.classList.add("show");
+        });
+
+        modalClose.addEventListener("click", () => {
+            modal.classList.remove("show");
+        });
+
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.classList.remove("show");
+            }
+        });
+
+        // Vote Counter Logic
+        const voteRef = ref(db, "votes");
+        onValue(voteRef, (snapshot) => {
+            const count = snapshot.val() || 0;
+            document.getElementById("vote-count").textContent = count;
+            console.log("Vote count updated:", count);
+        });
+
+        document.getElementById("vote-button").addEventListener("click", () => {
+            if (!localStorage.getItem("hasVoted")) {
+                runTransaction(voteRef, (currentVotes) => (currentVotes || 0) + 1)
+                    .then(() => console.log("Vote added successfully"))
+                    .catch((error) => console.error("Error adding vote:", error));
+                localStorage.setItem("hasVoted", "true");
+            } else {
+                alert("You have already voted.");
+            }
+        });
+
+        // Comments Logic
+        const commentsRef = ref(db, "comments");
+
+        document.getElementById("comment-button").addEventListener("click", () => {
+            const comment = document.getElementById("comment-input").value.trim();
+            if (comment) {
+                push(commentsRef, comment)
+                    .then(() => console.log("Comment added:", comment))
+                    .catch((error) => console.error("Error adding comment:", error));
+                document.getElementById("comment-input").value = "";
+            }
+        });
+
+        onValue(commentsRef, (snapshot) => {
+            const commentsDiv = document.getElementById("comments");
+            commentsDiv.innerHTML = "";
+            snapshot.forEach((childSnapshot) => {
+                const comment = childSnapshot.val();
+                const p = document.createElement("p");
+                p.textContent = comment;
+                commentsDiv.appendChild(p);
+            });
+        });
+    </script>
+</body>
+</html>
